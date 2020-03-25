@@ -1,5 +1,5 @@
-from LeastSquaresProblem import LeastSquares
-from StochasticGradientOpenAi import StochasticGradientEnvironment
+from objectives.LeastSquaresProblem import LeastSquares
+from objectives.StochasticGradientOpenAi import StochasticGradientEnvironment
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
@@ -11,12 +11,12 @@ from tqdm import tqdm
 
 
 # initialize constants
-REPLAY_MEMORY_SIZE = 500
+REPLAY_MEMORY_SIZE = 50
 GAMMA = 0.9
 BATCH_SIZE = 16
 MIN_BUFFER_SIZE = BATCH_SIZE
-EPISODES = 100
-UPDATE_TARGET_EVERY = 50
+EPISODES = 1
+UPDATE_TARGET_EVERY = 10
 N_ITERATIONS = 2000
 INPUT_SHAPE = (1,)
 MAX_ITER_PER_EPISODE = 200
@@ -69,18 +69,6 @@ class SGDDQNAgent:
         model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
 
         return model
-
-    def epsilon_greedy_policy(self, state, epsilon=0):
-        """
-
-        :param state:
-        :param epsilon:
-        :return:
-        """
-        if np.random.rand() < epsilon:
-            return np.random_choice(self.X.shape[0])
-        else:
-            return np.argmax(self.model.predict(np.array([state])))
 
     def train(self):
         # only train when we have enough examples
@@ -137,34 +125,37 @@ class SGDDQNAgent:
     def train_for_N_episodes(self, iterations = N_ITERATIONS):
         plt.figure()
         state = self.env.reset()
-        distance_to_w = []
-        weights = []
-        for iteration in tqdm(range(iterations)):
-            # extract Q_values
-            Q_values = self.model.predict(np.array([state]))
+        for episode in range(EPISODES):
+            distance_to_w = []
+            actions = []
+            for iteration in tqdm(range(iterations)):
+                # extract Q_values
+                Q_values = self.model.predict(np.array([state]))
 
-            # apply softmax function to achieve probability distribution
-            probabilities = np.squeeze(self.softmax(Q_values))
+                # apply softmax function to achieve probability distribution
+                probabilities = np.squeeze(self.softmax(Q_values))
 
-            # perform gradient step
-            successor_state, reward, action, w = self.env.step(probabilities, iteration)
+                # perform gradient step
+                successor_state, reward, action, w = self.env.step(probabilities, iteration)
+                actions.append(action)
+                distance_to_w.append(np.linalg.norm(w - self.optimal_w))
 
-            weights.append(w)
-            distance_to_w.append(np.linalg.norm(w - self.optimal_w))
+                # append experience to memory buffer
+                self.memory_buffer.append((state, action, reward, successor_state))
 
-            # append experience to memory buffer
-            self.memory_buffer.append((state, action, reward, successor_state))
+                # train network
+                self.train()
 
-            # train network
-            self.train()
+                state = successor_state
 
-            state = successor_state
-
-            return weights
-
-        plt.xlabel('Iteration: #')
-        plt.ylabel('$w$ - $w_{opt}$')
-        plt.plot(range(len(distance_to_w)), distance_to_w)
+            plt.xlabel('Iteration: #')
+            plt.ylabel('$w$ - $w_{opt}$')
+            plt.plot(range(len(distance_to_w)), distance_to_w, label = f'episode: {episode}')
+        plt.axis((0, 2000, 0, 1))
+        plt.legend(loc = 'best')
+        plt.show()
+        plt.figure()
+        plt.hist(actions)
         plt.show()
 
 if __name__ == '__main__':
