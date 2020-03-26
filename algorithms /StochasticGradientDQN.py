@@ -1,5 +1,6 @@
 from objectives.LeastSquaresProblem import LeastSquares
 from objectives.StochasticGradientOpenAi import StochasticGradientEnvironment
+from StochasticGradientDescent import StochasticGradientDescent
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
@@ -8,6 +9,7 @@ from collections import deque
 import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from collections import OrderedDict
 
 
 # initialize constants
@@ -15,14 +17,15 @@ REPLAY_MEMORY_SIZE = 50
 GAMMA = 0.9
 BATCH_SIZE = 16
 MIN_BUFFER_SIZE = BATCH_SIZE
-EPISODES = 1
+EPISODES = 5
 UPDATE_TARGET_EVERY = 10
-N_ITERATIONS = 2000
+N_ITERATIONS = 10000
 INPUT_SHAPE = (1,)
 MAX_ITER_PER_EPISODE = 200
 
 BATCH_LOOK_UP = dict(zip(['state', 'action', 'reward', 'successor_state'], range(0, 4)))
 
+np.random.seed(123)
 
 
 class SGDDQNAgent:
@@ -63,18 +66,15 @@ class SGDDQNAgent:
 
     def get_model(self):
         model = Sequential()
-        model.add(Dense(64, activation='relu', input_shape = INPUT_SHAPE))
-        model.add(Dense(64, activation='relu'))
+        model.add(Dense(16, activation='relu', input_shape = INPUT_SHAPE))
+        model.add(Dense(16, activation = 'relu'))
+        model.add(Dense(16, activation='relu'))
         model.add(Dense(self.action_space_dim, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
 
         return model
 
     def train(self):
-        # only train when we have enough examples
-        if len(self.memory_buffer) < MIN_BUFFER_SIZE:
-            return
-
         # sample mini-batch
         mini_batch = random.sample(self.memory_buffer, BATCH_SIZE)
 
@@ -123,11 +123,14 @@ class SGDDQNAgent:
         return q_exp / np.sum(q_exp)
 
     def train_for_N_episodes(self, iterations = N_ITERATIONS):
-        plt.figure()
-        state = self.env.reset()
+        # initialize hash tables to store information about training
+        actions = OrderedDict()
+        paths = OrderedDict()
+
         for episode in range(EPISODES):
             distance_to_w = []
-            actions = []
+            a = []
+            state, starting_point = self.env.reset()
             for iteration in tqdm(range(iterations)):
                 # extract Q_values
                 Q_values = self.model.predict(np.array([state]))
@@ -136,29 +139,62 @@ class SGDDQNAgent:
                 probabilities = np.squeeze(self.softmax(Q_values))
 
                 # perform gradient step
-                successor_state, reward, action, w = self.env.step(probabilities, iteration)
-                actions.append(action)
+                successor_state, reward, action, w, step = self.env.step(probabilities, iteration)
+
+                # store information for visualization purposes
+                a.append(action)
                 distance_to_w.append(np.linalg.norm(w - self.optimal_w))
 
                 # append experience to memory buffer
                 self.memory_buffer.append((state, action, reward, successor_state))
 
-                # train network
-                self.train()
+                # only train when we have enough examples
+                if len(self.memory_buffer) >= MIN_BUFFER_SIZE:
+                    self.train()
 
                 state = successor_state
 
-            plt.xlabel('Iteration: #')
-            plt.ylabel('$w$ - $w_{opt}$')
-            plt.plot(range(len(distance_to_w)), distance_to_w, label = f'episode: {episode}')
-        plt.axis((0, 2000, 0, 1))
-        plt.legend(loc = 'best')
-        plt.show()
-        plt.figure()
-        plt.hist(actions)
-        plt.show()
+            actions[episode] = a
+            paths[episode] = distance_to_w
+
+        return actions, paths
+
+
 
 if __name__ == '__main__':
     agent = SGDDQNAgent()
 
-    agent.train_for_N_episodes()
+    actions, paths = agent.train_for_N_episodes()
+
+    plt.figure()
+    for episode, path in paths.items():
+        plt.xlabel('Iteration: #')
+        plt.ylabel('$w$ - $w_{opt}$')
+        plt.plot(range(len(path)), path, label=f'episode: {episode}')
+        plt.title('Convergence to optimal solution during training')
+
+    plt.axis((0, len(paths[0]), 0, 0.4))
+    plt.legend(loc='best')
+    plt.show()
+
+
+    for episode, action in actions.items():
+        plt.figure()
+        plt.hist(action, bins = 100)
+        plt.title(f'Actions during episode: {episode}')
+        plt.show()
+
+
+    starting_point = agent.env.starting_point
+    objective = agent.env.objective
+    optimal_w = agent.optimal_w
+    sgd = StochasticGradientDescent(starting_point)
+
+    param = sgd.optimize(objective, n_iter=int(N_ITERATIONS / 100), analytical_sol=optimal_w)
+    distance_to_w_sgd = param[-2]
+    plt.figure()
+    plt.xlabel('Iteration: #')
+    plt.ylabel('$w$ - $w_{opt}$')
+    plt.plot(range(len(distance_to_w_sgd)), distance_to_w_sgd)
+    plt.title('Convergence to optimal solution SGD uniform sampling')
+    plt.show()

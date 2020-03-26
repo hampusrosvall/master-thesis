@@ -11,10 +11,10 @@ class StochasticGradientDescent:
 
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, starting_point):
+        self.w = starting_point
 
-    def optimize(self, objective, n_iter=100, sampling_strategy='uniform'):
+    def optimize(self, objective, n_iter=100, sampling_strategy='uniform', analytical_sol = None):
         '''
 
         :param objective: the function to optimize
@@ -22,7 +22,6 @@ class StochasticGradientDescent:
         :param n_iter: determines how many gradient steps the algorithmm performs
         :param record_weights: wheter to output the realizations of the stochastic process {w_k} for all iterations k
         '''
-
         # get dimension of data matrix
         n_rows, n_cols = objective.get_param_dim()
 
@@ -39,18 +38,18 @@ class StochasticGradientDescent:
         else:
             raise ValueError('sampling_strategy should be uniform or lipschitz')
 
-        # initialzie learnable parameter
-        x = np.random.rand(n_cols)
-
         # initialize history data structures
         weights = np.zeros((n_iter * n_rows + 1, n_cols))
         fn = [None for _ in range(n_iter * n_rows + 1)]
-        fn[0] = objective.evaluate(x)
-        weights[0, :] = x
+        fn[0] = objective.evaluate(self.w)
+        weights[0, :] = self.w
         idx = 1
 
         # initalize indicies list to keep track of which indicies are sampled
         indicies = list()
+        steps = []
+        if analytical_sol is not None:
+            distance_to_w = []
 
         # loop for n_iter iterations
         for k in range(n_iter):
@@ -58,14 +57,18 @@ class StochasticGradientDescent:
             # perform n_rows inner loops per iteration
             for _ in range(n_rows):
                 index = np.random.choice(n_rows, p=p)
-                grad = objective.stochastic_gradient(index, x)
+                grad = objective.stochastic_gradient(index, self.w)
                 indicies.append(index)
 
+                step = step_size / (p[index] * n_rows)
+                steps.append(step)
+                self.w = self.w - step * grad
 
-                x = x - step_size * grad / (p[index] * n_rows)
+                if analytical_sol is not None:
+                    distance_to_w.append(np.linalg.norm(self.w - analytical_sol))
 
-                weights[idx, :] = x
-                fn[idx] = objective.evaluate(x)
+                weights[idx, :] = self.w
+                fn[idx] = objective.evaluate(self.w)
                 idx += 1
 
             # diminishing step size
@@ -81,7 +84,10 @@ class StochasticGradientDescent:
         plt.yscale('log')
         plt.show()
 
-        return x, weights, fn, indicies
+        if analytical_sol is not None:
+            return self.w, weights, fn, indicies, distance_to_w, steps
+        else:
+            return self.w, weights, fn, indicies
 
 if __name__ == '__main__':
     m, n = 100, 2
