@@ -11,13 +11,12 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from collections import OrderedDict
 
-
 # initialize constants
 REPLAY_MEMORY_SIZE = 50
 GAMMA = 0.9
 BATCH_SIZE = 16
 MIN_BUFFER_SIZE = BATCH_SIZE
-EPISODES = 5
+EPISODES = 25
 UPDATE_TARGET_EVERY = 10
 N_ITERATIONS = 10000
 INPUT_SHAPE = (1,)
@@ -66,9 +65,9 @@ class SGDDQNAgent:
 
     def get_model(self):
         model = Sequential()
-        model.add(Dense(16, activation='relu', input_shape = INPUT_SHAPE))
-        model.add(Dense(16, activation = 'relu'))
-        model.add(Dense(16, activation='relu'))
+        model.add(Dense(64, activation='relu', input_shape = INPUT_SHAPE))
+        model.add(Dense(64, activation = 'relu'))
+        model.add(Dense(64, activation='relu'))
         model.add(Dense(self.action_space_dim, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
 
@@ -173,7 +172,6 @@ if __name__ == '__main__':
         plt.plot(range(len(path)), path, label=f'episode: {episode}')
         plt.title('Convergence to optimal solution during training')
 
-    plt.axis((0, len(paths[0]), 0, 0.4))
     plt.legend(loc='best')
     plt.show()
 
