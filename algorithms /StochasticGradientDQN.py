@@ -16,9 +16,9 @@ REPLAY_MEMORY_SIZE = 50
 GAMMA = 0.9
 BATCH_SIZE = 16
 MIN_BUFFER_SIZE = BATCH_SIZE
-EPISODES = 25
+EPISODES = 10
 UPDATE_TARGET_EVERY = 10
-N_ITERATIONS = 10000
+N_ITERATIONS = 2000
 INPUT_SHAPE = (1,)
 MAX_ITER_PER_EPISODE = 200
 
@@ -60,6 +60,7 @@ class SGDDQNAgent:
         m, n = 100, 2
 
         A = np.random.rand(m, n)
+        A[1:50, :] = A[1:50, :] * 10
         b = np.random.rand(m)
         return LeastSquares(A, b)
 
@@ -118,8 +119,13 @@ class SGDDQNAgent:
             self.target_update_counter = 0
 
     def softmax(self, Q):
-        q_exp = np.exp(Q)
-        return q_exp / np.sum(q_exp)
+        try:
+            q_exp = np.exp(Q)
+            prob = q_exp / np.sum(q_exp)
+        except:
+            print('failed')
+            pass
+        return prob
 
     def train_for_N_episodes(self, iterations = N_ITERATIONS):
         # initialize hash tables to store information about training

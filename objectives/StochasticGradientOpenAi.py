@@ -54,7 +54,7 @@ class StochasticGradientEnvironment:
 
         # todo: sätta reward till noll förutom under sista iterationen (evalueras över alla N summander)
         # todo: evaluerar alla summander för varje iteration
-        #reward = self.function_value - approx_func_val
+        # reward = self.function_value - approx_func_val
         # reward = self.function_value -> där function_value är det sanna funtionsvärdet
         reward = self.objective.evaluate(self.w)
         self.function_value = observation
