@@ -13,18 +13,18 @@ from collections import OrderedDict
 
 # initialize constants
 REPLAY_MEMORY_SIZE = 50
-GAMMA = 0.9
+GAMMA = 0.1
 BATCH_SIZE = 16
 MIN_BUFFER_SIZE = BATCH_SIZE
 EPISODES = 10
 UPDATE_TARGET_EVERY = 10
 N_ITERATIONS = 2000
 INPUT_SHAPE = (1,)
-MAX_ITER_PER_EPISODE = 200
 
 BATCH_LOOK_UP = dict(zip(['state', 'action', 'reward', 'successor_state'], range(0, 4)))
 
 np.random.seed(123)
+np.seterr(all = 'warn')
 
 
 class SGDDQNAgent:
@@ -66,9 +66,9 @@ class SGDDQNAgent:
 
     def get_model(self):
         model = Sequential()
-        model.add(Dense(64, activation='relu', input_shape = INPUT_SHAPE))
-        model.add(Dense(64, activation = 'relu'))
-        model.add(Dense(64, activation='relu'))
+        model.add(Dense(32, activation='relu', input_shape = INPUT_SHAPE))
+        model.add(Dense(32, activation = 'relu'))
+        #model.add(Dense(64, activation='relu'))
         model.add(Dense(self.action_space_dim, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
 
@@ -122,7 +122,7 @@ class SGDDQNAgent:
         try:
             q_exp = np.exp(Q)
             prob = q_exp / np.sum(q_exp)
-        except:
+        except Warning:
             print('failed')
             pass
         return prob

@@ -1,6 +1,6 @@
 import numpy as np
 np.random.seed(123)
-ALPHA = 0.99
+ALPHA = 0.9
 
 class StochasticGradientEnvironment:
     def __init__(self, objective):
@@ -57,6 +57,7 @@ class StochasticGradientEnvironment:
         # reward = self.function_value - approx_func_val
         # reward = self.function_value -> där function_value är det sanna funtionsvärdet
         reward = self.objective.evaluate(self.w)
+        # reward = 0
         self.function_value = observation
 
         return (observation, reward, action, self.w, step)
