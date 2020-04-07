@@ -1,12 +1,12 @@
 {
   "parameters" : {
-      "replay_memory_size" : 1000,
+      "replay_memory_size" : 500,
       "gamma" : 0.9,
-      "batch_size" : 16,
-      "minimum_buffer_size" : 16,
+      "batch_size" : 32,
+      "minimum_buffer_size" : 64,
       "n_episodes" : 10,
-      "update_target" : 10,
-      "n_iterations" : 2000
+      "update_target" : 100,
+      "n_iterations" : 10000
   }, 
   "network_architecture" : {
       "nbr_layers" : 2, 

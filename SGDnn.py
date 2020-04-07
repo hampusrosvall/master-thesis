@@ -4,6 +4,8 @@ from StochasticGradientDescent import StochasticGradientDescent
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.activations import softmax
+from tensorflow import convert_to_tensor
 import numpy as np
 from collections import deque
 import random
@@ -99,7 +101,7 @@ class SGDDQNAgent:
             model.add(Dense(lr, activation = 'relu'))
 
         model.add(Dense(self.action_space_dim, activation='linear'))
-        model.compile(loss="mse", optimizer=Adam(lr=0.001), metrics=['accuracy'])
+        model.compile(loss="mse", optimizer=Adam(lr=0.01), metrics=['accuracy'])
 
         return model
 
@@ -147,17 +149,6 @@ class SGDDQNAgent:
             self.target_model.set_weights(self.model.get_weights())
             self.target_update_counter = 0
 
-    def softmax(self, Q):
-        if not np.isfinite(Q).all():
-            print('failed')
-        q_exp = np.exp(Q)
-        prob = q_exp / np.sum(q_exp)
-
-        if not np.isfinite(q_exp).all() or not np.isfinite(prob).all() or not np.isfinite(Q).all():
-            print('failed')
-
-        return prob
-
     def train_for_N_episodes(self):
         # initialize hash tables to store information about training
         actions = OrderedDict()
@@ -172,7 +163,7 @@ class SGDDQNAgent:
                 Q_values = self.model.predict(np.array([state]))
 
                 # apply softmax function to achieve probability distribution
-                probabilities = np.squeeze(self.softmax(Q_values))
+                probabilities = np.array(softmax(convert_to_tensor(Q_values))[0])
 
                 # perform gradient step
                 successor_state, reward, action, w, step = self.env.step(probabilities, iteration)
