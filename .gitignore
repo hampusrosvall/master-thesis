@@ -130,9 +130,12 @@ dmypy.json
 
 # Jupyter Notebook
 .ipynb_checkpoints
+*.ipynb
 
 # PyCharm
 .idea/
+.vscode/
+.DS_Store
 
 # data folder
 experiments/

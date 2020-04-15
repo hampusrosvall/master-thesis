@@ -20,8 +20,7 @@ import os
 BATCH_LOOK_UP = dict(zip(['state', 'action', 'reward', 'successor_state'], range(0, 4)))
 
 np.random.seed(123)
-np.seterr(all = 'warn')
-INPUT_SHAPE = (1,)
+INPUT_SHAPE = (1, )
 
 class SGDDQNAgent:
     def __init__(self):
@@ -31,7 +30,7 @@ class SGDDQNAgent:
 
         # initialize parameters
         self.X, self.Y = self.objective.get_param()
-        self.action_space_dim = self.X.shape[0]
+        self.action_space_dim, self.input_shape = self.X.shape 
 
         # initialize Q-value approximators
         self.model = self.get_model()
@@ -49,6 +48,8 @@ class SGDDQNAgent:
 
         # initialize memory replay
         self.memory_buffer = deque(maxlen=self.replay_memory_size)
+
+        self.reward_type = self.get_reward_type()
 
     def initialize_hyper_parameters(self):
         if len(sys.argv) == 1:
@@ -75,11 +76,34 @@ class SGDDQNAgent:
         w_star = np.dot(pseudoinv, b)
         return w_star
 
+    def get_reward_type(self):
+        if len(sys.argv) == 1:
+            file_name = './standard_paramters.json'
+        else:
+            file_name = sys.argv[1]
+
+        with open(file_name, 'r') as f:
+            data_input = json.load(f)
+            reward_param = data_input['reward']
+
+        return reward_param
+
     def _init_objective(self):
-        m, n = 100, 2
+        if len(sys.argv) == 1:
+            file_name = './standard_paramters.json'
+        else:
+            file_name = sys.argv[1]
+
+        with open(file_name, 'r') as f:
+            data_input = json.load(f)
+            problem_param = data_input['problem_info']
+            m, n = problem_param["n_rows"], problem_param["n_cols"]
+            scale_lipschitz = problem_param["scale_lipschitz"]
 
         A = np.random.rand(m, n)
-        A[1:50, :] = A[1:50, :] * 10
+        if scale_lipschitz["should_scale"]:
+            rows_to_scale = m // 2
+            A[:rows_to_scale, :] = A[:rows_to_scale, :] * scale_lipschitz["factor"]
         b = np.random.rand(m)
         return LeastSquares(A, b)
 
@@ -95,7 +119,7 @@ class SGDDQNAgent:
             layers = network_param['nbr_nodes']
 
         model = Sequential()
-        model.add(Dense(32, activation='relu', input_shape = INPUT_SHAPE))
+        model.add(Dense(16, activation='relu', input_shape = INPUT_SHAPE))
 
         for lr in layers: 
             model.add(Dense(lr, activation = 'relu'))
@@ -152,10 +176,11 @@ class SGDDQNAgent:
     def train_for_N_episodes(self):
         # initialize hash tables to store information about training
         actions = OrderedDict()
-        paths = OrderedDict()
+        data = OrderedDict()
+        f_val = []
+        distance_to_w = []
 
         for episode in range(self.episodes):
-            distance_to_w = []
             a = []
             state, starting_point = self.env.reset()
             for iteration in tqdm(range(self.iterations)):
@@ -166,11 +191,15 @@ class SGDDQNAgent:
                 probabilities = np.array(softmax(convert_to_tensor(Q_values))[0])
 
                 # perform gradient step
-                successor_state, reward, action, w, step = self.env.step(probabilities, iteration)
+                successor_state, reward, action, w, step = self.env.step(probabilities, iteration,
+                                                                         self.reward_type, self.iterations)
 
                 # store information for visualization purposes
                 a.append(action)
-                distance_to_w.append(np.linalg.norm(w - self.optimal_w))
+
+                if iteration == self.iterations - 1:
+                    distance_to_w.append(np.linalg.norm(w - self.optimal_w))
+                    f_val.append(self.env.objective.evaluate(w))
 
                 # append experience to memory buffer
                 self.memory_buffer.append((state, action, reward, successor_state))
@@ -182,9 +211,12 @@ class SGDDQNAgent:
                 state = successor_state
 
             actions[episode] = a
-            paths[episode] = distance_to_w
+        data = {
+            "distance_to_w" : distance_to_w,
+            "f_val" : f_val
+        }
 
-        return actions, paths
+        return actions, data
 
     def train_session(self):
         # initialize directory to save data for the runs
@@ -206,37 +238,28 @@ class SGDDQNAgent:
                 file.write(content)
             file.close()
 
-        actions, paths = self.train_for_N_episodes()
+        actions, data = self.train_for_N_episodes()
+        distance_to_w, f_val = data["distance_to_w"], data["f_val"]
 
         plt.figure()
-        for episode, path in paths.items():
-            plt.xlabel('Iteration: #')
-            plt.ylabel('$w$ - $w_{opt}$')
-            plt.plot(range(len(path)), path, label=f'episode: {episode}')
-            plt.title('Convergence to optimal solution during training')
-
-        plt.legend(loc = 'best')
+        plt.ylabel('$w$ - $w_{opt}$')
+        plt.xlabel('Episode #')
+        plt.plot(range(len(distance_to_w)), distance_to_w)
+        plt.title('Distance from optimal solution during trainin g')
         plt.savefig(os.path.join(fpath, 'episode-convergence.png'))
+
+        plt.figure()
+        plt.ylabel('f(w)')
+        plt.xlabel('Episode #')
+        plt.plot(range(len(f_val)), f_val)
+        plt.title('Distance from optimal solution during trainin g')
+        plt.savefig(os.path.join(fpath, 'episode-f-val.png'))
 
         for episode, action in actions.items():
             plt.figure()
             plt.hist(action, bins=100)
             plt.title(f'Actions during episode: {episode}')
             plt.savefig(os.path.join(fpath, 'actions-episode-{}.png'.format(episode)))
-
-        #starting_point = agent.env.starting_point
-        #objective = agent.env.objective
-        #optimal_w = agent.optimal_w
-        #sgd = StochasticGradientDescent(starting_point)
-
-        #param = sgd.optimize(objective, n_iter=int(2000 / 100), analytical_sol=optimal_w)
-        #distance_to_w_sgd = param[-2]
-        #plt.figure()
-        #plt.xlabel('Iteration: #')
-        #plt.ylabel('$w$ - $w_{opt}$')
-        #plt.plot(range(len(distance_to_w_sgd)), distance_to_w_sgd)
-        #plt.title('Convergence to optimal solution SGD uniform sampling')
-        #plt.savefig(os.path.join(fpath, 'SGD-convergence.png'))
 
 if __name__ == '__main__':
     agent = SGDDQNAgent()

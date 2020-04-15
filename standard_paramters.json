@@ -1,15 +1,29 @@
 {
   "parameters" : {
-      "replay_memory_size" : 1000,
-      "gamma" : 0.9,
+      "replay_memory_size" : 256,
+      "gamma" : 0.99,
       "batch_size" : 16,
-      "minimum_buffer_size" : 16,
-      "n_episodes" : 10,
-      "update_target" : 10,
-      "n_iterations" : 2000
-  }, 
+      "minimum_buffer_size" : 64,
+      "n_episodes" : 30,
+      "update_target" : 100,
+      "n_iterations" : 2000,
+      "epsilon_policy" : {
+        "start_value": 1,
+        "min_value": 0.01,
+        "decay": 0.9995
+      }
+  },
   "network_architecture" : {
-      "nbr_layers" : 2, 
-      "nbr_nodes" : [32, 32]
-  }
+      "nbr_layers" : 3,
+      "nbr_nodes" : [32, 32, 32]
+  },
+  "problem_info" : {
+    "n_rows" : 20,
+    "n_cols" : 5,
+    "scale_lipschitz" : {
+      "should_scale" : true,
+      "factor" : 10
+    }
+  },
+  "reward" : "function_value"
 }

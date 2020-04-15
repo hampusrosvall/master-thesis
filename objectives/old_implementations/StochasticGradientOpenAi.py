@@ -31,7 +31,7 @@ class StochasticGradientEnvironment:
         self.k = 1
         return self.objective.evaluate(self.w), self.w
 
-    def step(self, probabilities, iteration):
+    def step(self, probabilities, iteration, reward_type, max_iter):
         """
 
         :param action: the index to take a stochastic gradient step w.r.t
@@ -45,22 +45,35 @@ class StochasticGradientEnvironment:
         grad = self.objective.stochastic_gradient(action, self.w)
 
         step = self.step_size / (probabilities[action] * self.n_summands)
+        old_w = self.w
         self.w = self.w - step * grad
+
         self.decrease_step_size(iteration)
 
         approx_func_val = self.objective.evaluate_summand(action, self.w)
 
         observation = ALPHA * approx_func_val + (1 - ALPHA) * self.function_value
 
-        # todo: sätta reward till noll förutom under sista iterationen (evalueras över alla N summander)
-        # todo: evaluerar alla summander för varje iteration
-        # reward = self.function_value - approx_func_val
-        # reward = self.function_value -> där function_value är det sanna funtionsvärdet
-        reward = self.objective.evaluate(self.w)
-        # reward = 0
+        reward = self.calulate_reward(reward_type, iteration, max_iter, old_w, self.w)
         self.function_value = observation
 
         return (observation, reward, action, self.w, step)
+
+    def calulate_reward(self, reward_type, iteration, max_iteration, old_w, new_w):
+        if reward_type == 'function_value':
+            return -self.objective.evaluate(self.w)
+
+        if reward_type == 'function_diff':
+            return - (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w))
+
+        if reward_type == 'last_iteration':
+            if iteration == max_iteration - 1:
+                return -self.objective.evaluate(self.w)
+            else:
+                return 0
+
+
+
 
     def _initialize_step_size(self):
         XtX = self.X.T.dot(self.X)
