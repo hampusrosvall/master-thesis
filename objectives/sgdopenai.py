@@ -15,6 +15,8 @@ class StochasticGradientEnvironment:
         # initialize starting point
         self.starting_point = np.random.rand(self.X.shape[1])
 
+        self.starting_fn_value = self.objective.evaluate(self.starting_point)
+
         # initialize weights parameter
         self.w = self.starting_point
 
@@ -49,7 +51,7 @@ class StochasticGradientEnvironment:
         self.k = 1
         return self.w 
 
-    def step(self, probabilities, iteration, reward_type, max_iter, Q_values):
+    def step(self, probabilities, iteration, reward_type, max_iter):
         """
 
         :param action: the index to take a stochastic gradient step w.r.t
@@ -85,10 +87,10 @@ class StochasticGradientEnvironment:
 
     def calulate_reward(self, reward_type, iteration, max_iteration, old_w, new_w):
         if reward_type == 'function_value':
-            return self.clip_reward(self.objective.evaluate(new_w))
+            return -1 * self.objective.evaluate(self.w) / self.starting_fn_value
 
         if reward_type == 'function_diff':
-            return - (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w))
+            return -1 * (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w))
 
         if reward_type == 'last_iteration':
             if iteration == max_iteration - 1:
@@ -97,7 +99,16 @@ class StochasticGradientEnvironment:
                 return
 
     def clip_reward(self, reward):
+        """
+        1) reward = - evaluateAt(current_weights) / evaluateAt(starting_weights)
+        2) reward = - evaluateAt(current_weights) - lowerBound / evaluateAt(starting_weights) - lowerBound
+        3) fn(x) = sign(x) * \frac{x^2}{x^2 + C} el. fn(x) = sigmoid(x)
+        4) smoothing m. ex deque
         return -1 if -1 * reward < -1 else -1 * reward
+        """
+
+        pass
+
 
     def initialize_step_size(self):
         XtX = self.X.T.dot(self.X)

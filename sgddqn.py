@@ -185,9 +185,10 @@ class SGDDQNAgent:
         actions = OrderedDict()
         f_val = []
         distance_to_w = []
-
+        rewards = []
         for episode in range(self.episodes):
             a = []
+            r = 0
             state = self.env.reset()
             for iteration in tqdm(range(self.iterations)):
                 # extract Q_values
@@ -196,9 +197,17 @@ class SGDDQNAgent:
                 # apply softmax function to achieve probability distribution
                 probabilities = np.array(softmax(convert_to_tensor(Q_values))[0])
 
+                if not np.isfinite(probabilities).all() or not np.isfinite(Q_values).all():
+                    print('hej')
+
                 # perform gradient step
                 successor_state, reward, action, w = self.env.step(probabilities, iteration,
-                                                                         self.reward_type, self.iterations, Q_values)
+                                                                         self.reward_type, self.iterations)
+
+                r += reward
+
+                if not np.isfinite(successor_state).all() or not np.isfinite(w).all():
+                    print('hej')
 
                 # store information for visualization purposes
                 a.append(action)
@@ -206,6 +215,7 @@ class SGDDQNAgent:
                 if iteration == self.iterations - 1:
                     distance_to_w.append(np.linalg.norm(w - self.optimal_w))
                     f_val.append(self.env.objective.evaluate(w))
+                    rewards.append(r)
 
                 # append experience to memory buffer
                 self.memory_buffer.append((state, action, reward, successor_state))
@@ -220,10 +230,12 @@ class SGDDQNAgent:
 
         data = {
             "distance_to_w" : distance_to_w,
-            "f_val" : f_val
+            "f_val" : f_val,
+            "rewards": rewards,
+            "actions": actions
         }
 
-        return actions, data
+        return data
 
     def train_session(self):
         # initialize directory to save data for the runs
@@ -245,28 +257,10 @@ class SGDDQNAgent:
                 file.write(content)
             file.close()
 
-        actions, data = self.train_for_N_episodes()
-        distance_to_w, f_val = data["distance_to_w"], data["f_val"]
-
-        plt.figure()
-        plt.ylabel('$w$ - $w_{opt}$')
-        plt.xlabel('Episode #')
-        plt.plot(range(len(distance_to_w)), distance_to_w)
-        plt.title('Distance from optimal solution during trainin g')
-        plt.savefig(os.path.join(fpath, 'episode-convergence.png'))
-
-        plt.figure()
-        plt.ylabel('f(w)')
-        plt.xlabel('Episode #')
-        plt.plot(range(len(f_val)), f_val)
-        plt.title('Distance from optimal solution during trainin g')
-        plt.savefig(os.path.join(fpath, 'episode-f-val.png'))
-
-        for episode, action in actions.items():
-            plt.figure()
-            plt.hist(action, bins=100)
-            plt.title(f'Actions during episode: {episode}')
-            plt.savefig(os.path.join(fpath, 'actions-episode-{}.png'.format(episode)))
+        data = self.train_for_N_episodes()
+        data_path = os.path.join(fpath, 'data.json')
+        with open(data_path, 'w') as f:
+            json.dump(data, f)
 
 if __name__ == '__main__':
     agent = SGDDQNAgent()

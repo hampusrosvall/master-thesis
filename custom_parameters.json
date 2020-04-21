@@ -4,8 +4,8 @@
       "gamma" : 0.99,
       "batch_size" : 16,
       "minimum_buffer_size" : 64,
-      "n_episodes" : 30,
-      "update_target" : 10,
+      "n_episodes" : 50,
+      "update_target" : 100,
       "n_iterations" : 2000,
       "epsilon_policy" : {
         "start_value": 1, 
@@ -15,7 +15,7 @@
   }, 
   "network_architecture" : {
       "nbr_layers" : 2, 
-      "nbr_nodes" : [32]
+      "nbr_nodes" : [32, 32]
   },
   "problem_info" : {
     "n_rows" : 20,
