@@ -95,7 +95,7 @@ class StochasticGradientEnvironment:
             return -1 * self.objective.evaluate(self.w) / self.starting_fn_value
 
         if reward_type == 'function_diff':
-            return (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w)) / self.starting_fn_value
+            return -1 * (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w)) / self.starting_fn_value
 
         if reward_type == 'smoothing':
             reward = -1 * self.objective.evaluate(self.w) / self.starting_fn_value
