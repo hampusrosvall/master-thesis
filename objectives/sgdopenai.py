@@ -1,13 +1,15 @@
 import numpy as np
 import sys 
 import json
+from collections import deque
 
 np.random.seed(123)
 
 class StochasticGradientEnvironment:
-    def __init__(self, objective):
+    def __init__(self, objective, reward_type):
         self.objective = objective
         self.X, self.Y = objective.get_param()
+        self.reward_type = reward_type
 
         self.initial_step_size = self.initialize_step_size()
         self.step_size = self.initial_step_size
@@ -24,11 +26,14 @@ class StochasticGradientEnvironment:
         self.k = 1
 
         # set value of epsilon for epsilon-greedy policy 
-        self.set_epsilon_greedy_policy_params()
+        self.set_params()
 
         self.n_summands, _ = objective.get_param_dim()
 
-    def set_epsilon_greedy_policy_params(self): 
+        if self.reward_type == 'smoothing':
+            self.reward_window = deque(maxlen = 10)
+
+    def set_params(self):
         if len(sys.argv) == 1:
             file_name = './standard_paramters.json'
         else:
@@ -39,7 +44,7 @@ class StochasticGradientEnvironment:
             param = data_input['parameters']['epsilon_policy']
             self.epsilon = param['start_value']
             self.epsilon_min = param['min_value']
-            self.epsilon_decay = param['decay']    
+            self.epsilon_decay = param['decay']
 
     def reset(self):
         """
@@ -81,22 +86,25 @@ class StochasticGradientEnvironment:
 
         observation = self.w 
 
-        reward = self.calulate_reward(reward_type, iteration, max_iter, old_w, self.w)
+        reward = self.calculate_reward(reward_type, iteration, max_iter, old_w, self.w)
 
         return (observation, reward, action, self.w)
 
-    def calulate_reward(self, reward_type, iteration, max_iteration, old_w, new_w):
+    def calculate_reward(self, reward_type, iteration, max_iteration, old_w, new_w):
         if reward_type == 'function_value':
             return -1 * self.objective.evaluate(self.w) / self.starting_fn_value
 
         if reward_type == 'function_diff':
-            return -1 * (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w))
+            return (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w)) / self.starting_fn_value
 
-        if reward_type == 'last_iteration':
-            if iteration == max_iteration - 1:
-                return -self.objective.evaluate(self.w)
-            else:
-                return
+        if reward_type == 'smoothing':
+            reward = -1 * self.objective.evaluate(self.w) / self.starting_fn_value
+            self.reward_window.append(reward)
+            return np.mean(self.reward_window)
+
+        if reward_type == 'normalizing_function':
+            reward = -1 * self.objective.evaluate(self.w)
+            return np.sign(reward) * (reward ** 2 / (reward ** 2 + 10))
 
     def clip_reward(self, reward):
         """

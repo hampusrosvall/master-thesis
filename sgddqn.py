@@ -48,18 +48,15 @@ class SGDDQNAgent:
         self.optimal_w = self.analytical_solution()
 
         # initialize hyper-parameters
-        self.initialize_hyper_parameters()
+        self.initialize_parameters()
 
         # initialize reinforcement learning environment for the optimization problem 
-        self.env = StochasticGradientEnvironment(self.objective)
+        self.env = StochasticGradientEnvironment(self.objective, self.reward_type)
 
         # initialize memory replay
         self.memory_buffer = deque(maxlen=self.replay_memory_size)
 
-        # set the reward type based on the input parameters 
-        self.reward_type = self.get_reward_type()
-
-    def initialize_hyper_parameters(self):
+    def initialize_parameters(self):
         if len(sys.argv) == 1:
             file_name = './standard_paramters.json'
         else:
@@ -75,6 +72,7 @@ class SGDDQNAgent:
             self.episodes = param['n_episodes']
             self.update_target = param['update_target']
             self.iterations = param['n_iterations']
+            self.reward_type = data_input['reward']
 
     def analytical_solution(self):
         A, b = self.objective.get_param()
@@ -82,18 +80,6 @@ class SGDDQNAgent:
         pseudoinv = np.matmul(pseudoinv, A.T)
         w_star = np.dot(pseudoinv, b)
         return w_star
-
-    def get_reward_type(self):
-        if len(sys.argv) == 1:
-            file_name = './standard_paramters.json'
-        else:
-            file_name = sys.argv[1]
-
-        with open(file_name, 'r') as f:
-            data_input = json.load(f)
-            reward_param = data_input['reward']
-
-        return reward_param
 
     def init_objective(self):
         if len(sys.argv) == 1:
