@@ -25,5 +25,5 @@
       "factor" : 10
     }
   },
-  "reward" : "function_value"
+  "reward" : "function_diff"
 }

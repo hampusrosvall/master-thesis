@@ -68,8 +68,12 @@ class StochasticGradientEnvironment:
 
         if p < self.epsilon:
             action = np.random.randint(self.n_summands)
+            prob = 1 / self.n_summands
         else:
             action = np.random.choice(self.n_summands, p = probabilities)
+            prob = probabilities[action]
+
+        action = np.random.choice(self.n_summands, p=probabilities)
 
         # decay epsilon 
         if self.epsilon > self.epsilon_min:
@@ -78,7 +82,7 @@ class StochasticGradientEnvironment:
         old_w = self.w
 
         grad = self.objective.stochastic_gradient(action, self.w)
-        step = self.step_size / (probabilities[action] * self.n_summands)
+        step = self.step_size / (prob * self.n_summands)
 
         self.w = self.w - step * grad
         
@@ -95,7 +99,7 @@ class StochasticGradientEnvironment:
             return -1 * self.objective.evaluate(self.w) / self.starting_fn_value
 
         if reward_type == 'function_diff':
-            return -1 * (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w)) / self.starting_fn_value
+            return (self.objective.evaluate(new_w) -  self.objective.evaluate(old_w)) / self.starting_fn_value
 
         if reward_type == 'smoothing':
             reward = -1 * self.objective.evaluate(self.w) / self.starting_fn_value
