@@ -182,18 +182,12 @@ class SGDDQNAgent:
 
                 # apply softmax function to achieve probability distribution
                 probabilities = np.array(softmax(convert_to_tensor(Q_values))[0])
-
-                if not np.isfinite(probabilities).all() or not np.isfinite(Q_values).all():
-                    print('hej')
-
+                
                 # perform gradient step
                 successor_state, reward, action, w = self.env.step(probabilities, iteration,
                                                                          self.reward_type, self.iterations)
 
                 r += reward
-
-                if not np.isfinite(successor_state).all() or not np.isfinite(w).all():
-                    print('hej')
 
                 # store information for visualization purposes
                 a.append(action)
