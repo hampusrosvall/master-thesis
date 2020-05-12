@@ -192,10 +192,10 @@ class SGDDQNAgent:
                 # store information for visualization purposes
                 a.append(action)
 
-                if iteration == self.iterations - 1:
-                    distance_to_w.append(np.linalg.norm(w - self.optimal_w))
-                    f_val.append(self.env.objective.evaluate(w))
-                    rewards.append(r)
+                # if iteration == self.iterations - 1:
+                #     distance_to_w.append(np.linalg.norm(w - self.optimal_w))
+                #     f_val.append(self.env.objective.evaluate(w))
+                #     rewards.append(r)
 
                 # append experience to memory buffer
                 self.memory_buffer.append((state, action, reward, successor_state))
@@ -207,6 +207,9 @@ class SGDDQNAgent:
                 state = successor_state
 
             actions[episode] = a
+            distance_to_w.append(np.linalg.norm(w - self.optimal_w))
+            f_val.append(self.env.objective.evaluate(w))
+            rewards.append(r)
 
         data = {
             "distance_to_w" : distance_to_w,
