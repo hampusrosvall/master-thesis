@@ -13,6 +13,7 @@ class StochasticGradientDescent:
 
     def __init__(self, starting_point):
         self.w = starting_point
+        self.starting_point = starting_point
 
     def optimize(self, objective, n_iter=1000, sampling_strategy='uniform', analytical_sol = None):
         '''
@@ -22,6 +23,9 @@ class StochasticGradientDescent:
         :param n_iter: determines how many gradient steps the algorithmm performs
         :param record_weights: wheter to output the realizations of the stochastic process {w_k} for all iterations k
         '''
+        
+        self.w = self.starting_point 
+
         # get the initial function value 
         initial_fn_val = objective.evaluate(self.w)
 

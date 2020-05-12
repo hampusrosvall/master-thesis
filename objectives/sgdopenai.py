@@ -15,7 +15,7 @@ class StochasticGradientEnvironment:
         self.step_size = self.initial_step_size
 
         # initialize starting point
-        self.starting_point = np.random.rand(self.X.shape[1])
+        self.starting_point = self.read_starting_point()
 
         self.starting_fn_value = self.objective.evaluate(self.starting_point)
 
@@ -32,6 +32,9 @@ class StochasticGradientEnvironment:
 
         if self.reward_type == 'smoothing':
             self.reward_window = deque(maxlen = 10)
+
+    def read_starting_point(self): 
+        return np.load('startingPoint.npy')
 
     def set_params(self):
         if len(sys.argv) == 1:
