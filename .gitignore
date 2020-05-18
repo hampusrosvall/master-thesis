@@ -139,3 +139,5 @@ dmypy.json
 
 # data folder
 experiments/
+
+resultPlots/

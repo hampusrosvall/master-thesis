@@ -8,7 +8,7 @@ np.random.seed(123)
 class StochasticGradientEnvironment:
     def __init__(self, objective, reward_type):
         self.objective = objective
-        self.X, self.Y = objective.get_param()
+        self.points, self.weights = objective.get_param()
         self.reward_type = reward_type
 
         self.initial_step_size = self.initialize_step_size()
@@ -34,7 +34,7 @@ class StochasticGradientEnvironment:
             self.reward_window = deque(maxlen = 10)
 
     def read_starting_point(self): 
-        return np.load('startingPoint.npy')
+        return np.mean(self.points, 0)
 
     def set_params(self):
         if len(sys.argv) == 1:
@@ -113,25 +113,15 @@ class StochasticGradientEnvironment:
             reward = -1 * self.objective.evaluate(self.w)
             return np.sign(reward) * (reward ** 2 / (reward ** 2 + 10))
 
-    def clip_reward(self, reward):
-        """
-        1) reward = - evaluateAt(current_weights) / evaluateAt(starting_weights)
-        2) reward = - evaluateAt(current_weights) - lowerBound / evaluateAt(starting_weights) - lowerBound
-        3) fn(x) = sign(x) * \frac{x^2}{x^2 + C} el. fn(x) = sigmoid(x)
-        4) smoothing m. ex deque
-        return -1 if -1 * reward < -1 else -1 * reward
-        """
-
-        pass
-
-
     def initialize_step_size(self):
-        XtX = self.X.T.dot(self.X)
-        eig_vals, _ = np.linalg.eig(XtX)
-        initial_step_size = 1. / max(eig_vals)
-        return initial_step_size
+        return 1. / np.sum(self.weights)
 
     def decrease_step_size(self, iteration):
         if iteration > 0 and iteration % self.n_summands == 0:
             self.step_size = self.initial_step_size / self.k
             self.k += 1
+
+
+
+
+

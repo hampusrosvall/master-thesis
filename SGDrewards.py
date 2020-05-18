@@ -45,8 +45,9 @@ class StochasticGradientDescent:
         else:
             raise ValueError('sampling_strategy should be uniform or lipschitz')
 
-        rewards = 0 
-
+        rewardsVal = 0 
+        rewardsDiff = 0 
+        rewardsNormFn = 0 
         # loop for n_iter iterations
         for k in range(n_iter):
 
@@ -55,11 +56,13 @@ class StochasticGradientDescent:
                 index = np.random.choice(n_rows, p=p)
                 grad = objective.stochastic_gradient(index, self.w)
 
+                old_w = self.w 
                 step = step_size / (p[index] * n_rows)
                 self.w = self.w - step * grad
 
-                rewards += (objective.evaluate(self.w) / initial_fn_val) * -1
-
+                rewardsVal += (objective.evaluate(self.w) / initial_fn_val) * -1
+                rewardsDiff += (objective.evaluate(self.w) - objective.evaluate(old_w)) / initial_fn_val
+                rewardsNormFn += np.sign(rewardsVal) * (rewardsVal ** 2 / (rewardsVal ** 2 + 10))
             # diminishing step size
             if k > 0:
                 step_size = initial_step_size / k
@@ -67,4 +70,22 @@ class StochasticGradientDescent:
         fn_val = objective.evaluate(self.w) 
         distance_from_wopt = np.linalg.norm(self.w - analytical_sol)
 
-        return rewards, fn_val, distance_from_wopt
+        return (rewardsVal, rewardsDiff, rewardsNormFn), fn_val, distance_from_wopt
+
+if __name__ == '__main__': 
+    from objectives.LeastSquaresProblem import LeastSquares
+    starting_point = np.load('startingPoint.npy')
+    sgd = StochasticGradientDescent(starting_point)
+    m, n = 20, 5
+    A = np.random.rand(m, n)      
+    rows_to_scale = m // 2
+    A[:rows_to_scale, :] = A[:rows_to_scale, :] * 10
+    b = np.random.rand(m)
+
+    fn = LeastSquares(A, b)
+
+    pseudoinv = np.linalg.inv(np.matmul(A.T, A))
+    pseudoinv = np.matmul(pseudoinv, A.T)
+    w_star = np.dot(pseudoinv, b)
+
+    sgd.optimize(fn, n_iter = 100, analytical_sol = w_star, sampling_strategy = 'uniform')

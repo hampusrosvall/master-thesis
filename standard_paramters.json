@@ -2,7 +2,7 @@
   "parameters" : {
       "replay_memory_size" : 256,
       "gamma" : 0.99,
-      "batch_size" : 16,
+      "batch_size" : 32,
       "minimum_buffer_size" : 64,
       "n_episodes" : 100,
       "update_target" : 100,
@@ -25,5 +25,5 @@
       "factor" : 10
     }
   },
-  "reward" : "function_diff"
+  "reward" : "function_value"
 }
