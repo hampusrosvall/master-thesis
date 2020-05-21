@@ -1,4 +1,6 @@
 # Introduction 
+__Apparently, LaTeX is not supported by git markdown, hence, the readme looks messy at some points..__
+
 This my implementation of a deep Q-network that solves optimization problems using stochastic gradient descent to solve finite sum problems. The network architecture is based on the work done by DeepMind [1]. Using vanillva stochastic gradient descent, the sampling strategy is explicitlly defined by a probability distribution over the summand indicies $I = \{0, ... , N - 1\}$. Popular sampling strategies are uniform and Lipschitz sampling [2]. 
 
 # Implemenatation 
