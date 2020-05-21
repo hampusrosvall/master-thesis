@@ -6,7 +6,7 @@
       "minimum_buffer_size" : 64,
       "n_episodes" : 100,
       "update_target" : 10,
-      "n_iterations" : 2000,
+      "n_iterations" : 20,
       "epsilon_policy" : {
         "start_value": 1, 
         "min_value": 0.01, 

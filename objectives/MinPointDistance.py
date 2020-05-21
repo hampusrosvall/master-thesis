@@ -14,8 +14,8 @@ class MinDistance:
             dx = np.random.normal()
             dy = np.random.normal()
             if i == 9: 
-                points[i][:] = np.array([x, y]) * 10
-                weights[i] = 10
+                points[i][:] = np.array([x, y]) * 100
+                weights[i] = 100
             else: 
                 points[i][:] = np.array([x - dx, y - dy])
 

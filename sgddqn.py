@@ -11,7 +11,7 @@ from collections import deque
 import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import sys
 import json
 from datetime import datetime
@@ -97,6 +97,7 @@ class SGDDQNAgent:
         if scale_lipschitz["should_scale"]:
             rows_to_scale = m // 2
             A[:rows_to_scale, :] = A[:rows_to_scale, :] * scale_lipschitz["factor"]
+            A[-1, :] = A[-1, :] * 100
         b = np.random.rand(m)
         return LeastSquares(A, b)
 
@@ -172,10 +173,12 @@ class SGDDQNAgent:
         f_val = []
         distance_to_w = []
         rewards = []
+        optimization_path = defaultdict(list)
         for episode in range(self.episodes):
             a = []
             r = 0
             state = self.env.reset()
+            opt_path = [np.linalg.norm(state - self.optimal_w)]
             for iteration in tqdm(range(self.iterations)):
                 # extract Q_values
                 Q_values = self.model.predict(np.array([state]))
@@ -186,6 +189,7 @@ class SGDDQNAgent:
                 # perform gradient step
                 successor_state, reward, action, w = self.env.step(probabilities, iteration,
                                                                          self.reward_type, self.iterations)
+                opt_path.append(np.linalg.norm(w - self.optimal_w))
 
                 r += reward
 
@@ -207,6 +211,7 @@ class SGDDQNAgent:
                 state = successor_state
 
             actions[episode] = a
+            optimization_path[episode] = opt_path
             distance_to_w.append(np.linalg.norm(w - self.optimal_w))
             f_val.append(self.env.objective.evaluate(w))
             rewards.append(r)
@@ -215,7 +220,8 @@ class SGDDQNAgent:
             "distance_to_w" : distance_to_w,
             "f_val" : f_val,
             "rewards": rewards,
-            "actions": actions
+            "actions": actions,
+            "optimization_path" : optimization_path
         }
 
         return data
