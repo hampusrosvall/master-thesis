@@ -25,5 +25,5 @@
       "factor" : 10
     }
   },
-  "reward" : "normalizing_function"
+  "reward" : "function_value"
 }
